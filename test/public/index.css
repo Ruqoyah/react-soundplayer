@@ -5,13 +5,13 @@
     margin-right: 10px;
     background: linear-gradient(90deg, #b74dc3, #6610ff);
     color: #fff;
-    padding-top: 3px;
     display: flex;
     flex-direction: row;
 
     margin: 100px auto;
     width:60%;
-    
+    padding: 3px 2% 3px 0;
+
 }
 
 .audio-section div:first-child {
@@ -309,3 +309,11 @@
 .ff-audio .timer {
     margin-left: 20px;
 }
+
+
+/* style waveform */
+
+.ff-audio .z1 > div:nth-child(3) div{
+  border-right: 1px solid rgb(206, 205, 205);
+}
+

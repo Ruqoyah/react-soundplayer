@@ -3,7 +3,9 @@
     "version": "0.1.0",
     "private": true,
     "dependencies": {
+        "axios": "^0.19.0",
         "react": "^16.0.0",
+        "react-audio-waveform": "0.0.5",
         "react-dom": "^16.0.0",
         "react-howler": "^3.7.4",
         "react-scripts": "1.0.17",

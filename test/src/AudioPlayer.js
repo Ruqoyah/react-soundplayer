@@ -1,8 +1,11 @@
+/* eslint-disable no-undef */
 import React, { Component } from 'react';
 import ReactHowler from 'react-howler';
 import PropTypes from 'prop-types';
 
-import { PlayButton, Progress, Timer } from 'react-soundplayer/components';
+import { PlayButton } from 'react-soundplayer/components';
+import Waveform from "react-audio-waveform";
+import axios from 'axios';
 
 const DEFAULT_DURATION = 456.1495; // have to use this become modifying the audio file breaks 2x speed
 const DEFAULT_MP3 = "https://parse-server-ff.s3.amazonaws.com/ae5992f0f5bb1f259bafa41b3771e3bb_call12565815456dwwwwww795896232www-01b59bd3.mp3";
@@ -38,6 +41,43 @@ class AudioPlayer extends Component {
         return { playing, currentTime };
     }
 
+    handleClick = (secs) => {
+      this.setState({
+        currentTime: secs
+      });
+    }
+
+    // get wave data and convert it into peak.
+    getWaveFormData() {
+        const { mp3url } = this.props;
+        const BARS= 100; // number of "bars" the waveform should have
+            let audioContext = new AudioContext();
+            //Get audio data using axios
+            axios({url: mp3url, responseType: "arraybuffer"}).then(({data}) => {
+              //Decode audio data
+              audioContext.decodeAudioData(data, buffer => {
+                    let decodedAudioData = buffer.getChannelData(0);
+                    let dataSize = Math.floor(decodedAudioData.length / BARS);
+                    let peaks = [];
+                    //loop to get waveform list of numbers
+                    for (let index = 0; index < BARS; index++) {
+                        let startingPoint = index * dataSize;
+                        let endingPoint = index * dataSize + dataSize;
+                        let max = 0;
+                        for (let i = startingPoint; i < endingPoint; i++) {
+                            if (decodedAudioData[i] > max) {
+                                max = decodedAudioData[i];
+                            }
+                        }
+                        let size = Math.abs(max);
+                        peaks.push(size / 2);
+                    }
+                    // set peaks to state and log peaks(waveform list of numbers) to the console
+                    this.setState({peaks},() => console.log(this.state.peaks, 'list of numbers'));
+                }, e => {console.log('Error with decoding audio data' + e.err);});
+            }).catch(err => { console.log(err);});
+    }
+
     getSeek() {
         if (this.playerInterval) clearInterval(this.playerInterval);
         this.playerInterval = setInterval(() => {
@@ -65,6 +105,7 @@ class AudioPlayer extends Component {
     }
 
     componentDidMount() {
+        this.getWaveFormData();
         this.getSeek();
     }
 
@@ -74,12 +115,12 @@ class AudioPlayer extends Component {
 
     render() {
         const { mp3url } = this.props;
-        let { playing, currentTime, duration, speedup, loadErr } = this.state;
+        let { playing, currentTime, duration, speedup, loadErr, peaks } = this.state;
         if (this.isObject(currentTime)) currentTime = 0;
         if (mp3url == DEFAULT_MP3) duration = DEFAULT_DURATION;
         return (
             <div className="ff-audio">
-                {duration != null ? <div className="flex flex-center px2 relative z1">
+                {duration != null && peaks != undefined ? <div className="flex flex-center px2 relative z1">
                     <PlayButton
                         playing={playing}
                         onTogglePlay={() => this.setState({ playing: !playing })}
@@ -93,17 +134,16 @@ class AudioPlayer extends Component {
                             <img className={speedup ? 'audio-speedup' : ""} src="/pane/speedup.svg" height={35} />
                         </button>
                     </div>
-                    <Progress
-                        className="flex-auto bg-darken-3 rounded"
-                        innerClassName="rounded-left bg-white"
-                        value={((currentTime || 0) / (duration || 1)) * 100 || 0}
-                        onSeekTrack={(ts) => this.seek(ts * duration)}
+                    <Waveform
+                      barWidth={2}
+                      peaks={peaks}
+                      height={50}
+                      pos={currentTime}
+                      duration={duration}
+                      onClick={(secs) => this.seek(secs)}
+                      color="rgba(255, 255, 255, 0.2)"
+                      progressColor="#fff"
                     />
-
-                    <Timer
-                        className={"timer"}
-                        duration={duration} // in seconds
-                        currentTime={currentTime != null ? currentTime : 0} />
                 </div> : (loadErr ? <div style={{ padding: "5 20px" }}>Unable to load audio: {loadErr}</div> : <div className="progress"><div className="indeterminate" /></div>)}
                 <div>
                     <ReactHowler
